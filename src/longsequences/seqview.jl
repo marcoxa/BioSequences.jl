@@ -1,6 +1,10 @@
-################################### Construction etc
+### -*- Mode: Julia -*-
 
-# Mention in docs no boundscheck is performed on instantiation
+### seqview.jl
+
+### Construction etc
+### Mention in docs no boundscheck is performed on instantiation.
+
 """
 	LongSubSeq{A <: Alphabet}
 
@@ -23,14 +27,18 @@ struct LongSubSeq{A<:Alphabet} <: BioSequence{A}
     data::Vector{UInt64}
     part::UnitRange{Int}
 
-	# Added to reduce method ambiguities
-	LongSubSeq{A}(data::Vector{UInt64}, part::UnitRange{Int}) where A = new{A}(data, part)
+    ## Added to reduce method ambiguities
+    LongSubSeq{A}(data::Vector{UInt64}, part::UnitRange{Int}) where A =
+        new{A}(data, part)
 end
 
-# These unions are significant because LongSubSeq and LongSequence have the same
-# encoding underneath, so many methods can be shared.
+
+### These unions are significant because LongSubSeq and LongSequence
+### have the same encoding underneath, so many methods can be shared.
+
 const SeqOrView{A} = Union{LongSequence{A}, LongSubSeq{A}}
 const NucleicSeqOrView = SeqOrView{<:NucleicAcidAlphabet}
+
 
 Base.length(v::LongSubSeq) = last(v.part) - first(v.part) + 1
 Base.copy(v::LongSubSeq{A}) where A = LongSequence{A}(v)
@@ -38,48 +46,66 @@ Base.copy(v::LongSubSeq{A}) where A = LongSequence{A}(v)
 encoded_data_eltype(::Type{<:LongSubSeq}) = encoded_data_eltype(LongSequence)
 symbols_per_data_element(x::LongSubSeq) = div(64, bits_per_symbol(Alphabet(x)))
 
+
 @inline function bitindex(x::LongSubSeq, i::Integer)
     N = BitsPerSymbol(Alphabet(typeof(x)))
     bitindex(N, encoded_data_eltype(typeof(x)), i % UInt + first(x.part) - 1)
 end
 
-# Constructors
+
+### Constructors
+
 function LongSubSeq{A}(seq::LongSequence{A}) where A
     return LongSubSeq{A}(seq.data, 1:length(seq))
 end
+
 
 function LongSubSeq{A}(seq::LongSubSeq{A}) where A
     return LongSubSeq{A}(seq.data, seq.part)
 end
 
-function LongSubSeq{A}(seq::LongSequence{A}, part::AbstractUnitRange{<:Integer}) where A
+
+function LongSubSeq{A}(seq::LongSequence{A},
+                       part::AbstractUnitRange{<: Integer}) where A
     @boundscheck checkbounds(seq, part)
     return LongSubSeq{A}(seq.data, UnitRange{Int}(part))
 end
 
-function LongSubSeq{A}(seq::LongSubSeq{A}, part::AbstractUnitRange{<:Integer}) where A
+
+function LongSubSeq{A}(seq::LongSubSeq{A},
+                       part::AbstractUnitRange{<: Integer}) where A
     @boundscheck checkbounds(seq, part)
-    newpart = first(part) + first(seq.part) - 1 : last(part) + first(seq.part) - 1
+    newpart =
+        first(part) + first(seq.part) - 1 : last(part) + first(seq.part) - 1
     return LongSubSeq{A}(seq.data, newpart)
 end
 
+
 function LongSubSeq(seq::SeqOrView{A}, i) where A
-	return LongSubSeq{A}(seq, i)
+    return LongSubSeq{A}(seq, i)
 end
 
+
 LongSubSeq(seq::SeqOrView, ::Colon) = LongSubSeq(seq, 1:lastindex(seq))
+
+
 LongSubSeq(seq::BioSequence{A}) where A = LongSubSeq{A}(seq)
+
 
 Base.view(seq::SeqOrView, part::AbstractUnitRange) = LongSubSeq(seq, part)
 
-# Conversion
+
+### Conversion.
+
 function LongSequence(s::LongSubSeq{A}) where A
-	_copy_seqview(LongSequence{A}, s)
+    _copy_seqview(LongSequence{A}, s)
 end
 
-function LongSequence{A}(seq::LongSubSeq{A}) where {A<:NucleicAcidAlphabet}
-	_copy_seqview(LongSequence{A}, seq)
+
+function LongSequence{A}(seq::LongSubSeq{A}) where {A<: NucleicAcidAlphabet}
+    _copy_seqview(LongSequence{A}, seq)
 end
+
 
 function _copy_seqview(T, s::LongSubSeq)
 	first = firstbitindex(s)
@@ -88,25 +114,37 @@ function _copy_seqview(T, s::LongSubSeq)
 	return zero_offset!(res, offset(first) % UInt)
 end
 
-function (::Type{T})(seq::LongSequence{<:NucleicAcidAlphabet{N}}) where
+
+function (::Type{T})(seq::LongSequence{<: NucleicAcidAlphabet{N}}) where
 	{N, T<:LongSubSeq{<:NucleicAcidAlphabet{N}}}
 	T(seq.data, 1:length(seq))
 end
 
-function (::Type{T})(seq::LongSequence{<:NucleicAcidAlphabet{N}}, part::AbstractUnitRange{<:Integer}) where
+
+function (::Type{T})(seq::LongSequence{<: NucleicAcidAlphabet{N}},
+                     part::AbstractUnitRange{<: Integer}) where
 	{N, T<:LongSubSeq{<:NucleicAcidAlphabet{N}}}
 	@boundscheck checkbounds(seq, part)
 	T(seq.data, UnitRange{Int}(part))
 end
 
+
 function Base.convert(::Type{T1}, seq::T2) where
-	{T1 <: Union{LongSequence, LongSubSeq}, T2 <: Union{LongSequence, LongSubSeq}}
-	return T1(seq)
+    {T1 <: Union{LongSequence, LongSubSeq},
+     T2 <: Union{LongSequence, LongSubSeq}}
+    return T1(seq)
 end
 
-# Indexing
-function Base.getindex(seq::LongSubSeq, part::AbstractUnitRange{<:Integer})
-	return LongSubSeq(seq, part)
+
+### Indexing.
+
+function Base.getindex(seq::LongSubSeq,
+                       part::AbstractUnitRange{<: Integer})
+    return LongSubSeq(seq, part)
 end
+
 
 Base.parentindices(seq::LongSubSeq) = (seq.part,)
+
+
+### seqview.jl ends here.

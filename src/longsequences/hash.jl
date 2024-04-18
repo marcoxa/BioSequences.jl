@@ -1,21 +1,29 @@
+### -*- Mode: Julia -*-
+
+### hash.jl
+
 ###
 ### Hash
 ###
 ###
 ### MurmurHash3 function of BioSequence.
 ###
-### The hash function defined here cares about the starting position of a
-### character sequence in the underlying data. That means, even if the starting
-### positions of two sequences (`s1` and `s2`) are different in their `data`
-### field, their hash values are identical if `s1 == s1` is true.  The
-### implementation is based on the 128bit MurmurHash3 function, which was written
-### by Austin Appleby, and the source code is distributed under the public domain:
+### The hash function defined here cares about the starting position
+### of a character sequence in the underlying data. That means, even
+### if the starting positions of two sequences (`s1` and `s2`) are
+### different in their `data` field, their hash values are identical
+### if `s1 == s1` is true.  The implementation is based on the 128bit
+### MurmurHash3 function, which was written by Austin Appleby, and the
+### source code is distributed under the public domain:
 ### https://github.com/aappleby/smhasher/blob/master/src/MurmurHash3.cpp
 ###
 ### This file is a part of BioJulia.
 ### License is MIT: https://github.com/BioJulia/BioSequences.jl/blob/master/LICENSE.md
 
-# NB NOTE: This entire file is commented out until issue #243 is resolved
+@in_module BioSequences
+
+
+### NB NOTE: This entire file is commented out until issue #243 is resolved
 #=
 const c1 = 0x87c37b91114253d5
 const c2 = 0x4cf5ad432745937f
@@ -176,3 +184,5 @@ function Base.hash(seq::SeqOrView, seed::UInt64)
     return h1
 end
 =#
+
+### hash.jl ends here.

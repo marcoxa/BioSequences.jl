@@ -1,13 +1,20 @@
+### -*- Mode: Julia -*-
+
+### ExactSearchQuery.jl
+
+@in_module BioSequences
+
 """
     ExactSearchQuery{F<:Function,S<:BioSequence}
 
 Query type for exact sequence search.
 
-An exact search, is one where are you are looking in some given sequence, for
-exact instances of some given substring.
+An exact search, is one where are you are looking in some given
+sequence, for exact instances of some given substring.
 
-These queries are used as a predicate for the `Base.findnext`, `Base.findprev`,
-`Base.occursin`, `Base.findfirst`, and `Base.findlast` functions.
+These queries are used as a predicate for the `Base.findnext`,
+`Base.findprev`, `Base.occursin`, `Base.findfirst`, and
+`Base.findlast` functions.
 
 # Examples
 
@@ -38,11 +45,11 @@ true
 
 ```
 
-You can pass a comparator function such as `isequal` or `iscompatible` to its
-constructor to modify the search behaviour.
+You can pass a comparator function such as `isequal` or `iscompatible`
+to its constructor to modify the search behaviour.
 
-The default is `isequal`, however, in biology, sometimes we want a more flexible
-comparison to find subsequences of _compatible_ symbols.
+The default is `isequal`, however, in biology, sometimes we want a
+more flexible comparison to find subsequences of _compatible_ symbols.
 
 ```jldoctest
 julia> query = ExactSearchQuery(dna"CGT", iscompatible);
@@ -55,25 +62,28 @@ julia> findfirst(query, dna"ACGT")  # 'G' matches 'N'
 
 julia> occursin(ExactSearchQuery(dna"CNT", iscompatible), dna"ACNT")
 true
-
 ```
 """
-struct ExactSearchQuery{F<:Function,S<:BioSequence}
-    comparator::F       # comparator function
+struct ExactSearchQuery{F <: Function, S <: BioSequence}
+    comparator::F       # comparator function.
     seq::S              # query sequence
     bloom_mask::UInt64  # compatibility bits / bloom mask
     fshift::Int         # shift length for forward search
     bshift::Int         # shift length for backward search
 end
 
+
 """
     ExactSearchQuery(pat::BioSequence, comparator::Function = isequal)
 
-Construct an [`ExactSearchQuery`](@ref) predicate for use with Base find functions.
+Construct an [`ExactSearchQuery`](@ref) predicate for use with Base
+find functions.
 
 # Arguments
-- `pat`: A concrete BioSequence that is the sub-sequence you want to search for.
-- `comparator`: A function used to compare the symbols between sequences. `isequal` by default.
+- `pat`: A concrete BioSequence that is the sub-sequence you want to
+  search for.
+- `comparator`: A function used to compare the symbols between
+  sequences. `isequal` by default.
 """
 function ExactSearchQuery(pat::BioSequence, comparator::Function = isequal)
     T = ExactSearchQuery{typeof(comparator),typeof(pat)}
@@ -107,15 +117,23 @@ function ExactSearchQuery(pat::BioSequence, comparator::Function = isequal)
 end
 
 
-@inline _check_ambiguous(q::ExactSearchQuery{typeof(isequal),<:BioSequence}) = false
-@inline _check_ambiguous(q::ExactSearchQuery{typeof(iscompatible),<:BioSequence}) = true
+@inline _check_ambiguous(q::ExactSearchQuery{typeof(isequal),
+                                             <: BioSequence}) = false
+
+
+@inline _check_ambiguous(q::ExactSearchQuery{typeof(iscompatible),
+                                             <: BioSequence}) = true
+
 
 @inline function _bloom_bits(::Type{typeof(isequal)}, x::BioSymbol)
     return (UInt64(1) << (encoded_data(x) & 63))
 end
+
+
 @inline function _bloom_bits(::Type{typeof(iscompatible)}, x::BioSymbol)
     return compatbits(x)
 end
+
 
 @inline function checkeltype(seq1::BioSequence, seq2::BioSequence)
     if eltype(seq1) != eltype(seq2)
@@ -123,7 +141,11 @@ end
     end
 end
 
-function quicksearch(query::ExactSearchQuery, seq::BioSequence, start::Integer, stop::Integer)
+
+function quicksearch(query::ExactSearchQuery,
+                     seq::BioSequence,
+                     start::Integer,
+                     stop::Integer)
     pat = query.seq
     comparator = query.comparator
     bloom_mask = query.bloom_mask
@@ -155,7 +177,9 @@ function quicksearch(query::ExactSearchQuery, seq::BioSequence, start::Integer, 
             end
             if i == 0
                 return s + 1  # found
-            elseif s < stop′ && (bloom_mask & _bloom_bits(typeof(comparator), seq[s + m + 1]) == 0)
+            elseif s < stop′ &&
+                (bloom_mask &
+                _bloom_bits(typeof(comparator), seq[s + m + 1]) == 0)
                 s += m + 1
             elseif ambig_check && isambiguous(seq[s + m])
                 s += 1
@@ -172,7 +196,11 @@ function quicksearch(query::ExactSearchQuery, seq::BioSequence, start::Integer, 
     return 0  # not found
 end
 
-function quickrsearch(query::ExactSearchQuery, seq::BioSequence, start::Integer, stop::Integer)
+
+function quickrsearch(query::ExactSearchQuery,
+                      seq::BioSequence,
+                      start::Integer,
+                      stop::Integer)
     pat = query.seq
     comparator = query.comparator
     bloom_mask = query.bloom_mask
@@ -204,14 +232,16 @@ function quickrsearch(query::ExactSearchQuery, seq::BioSequence, start::Integer,
             end
             if i == m + 1
                 return s + 1  # found
-            elseif s > stop′ && (bloom_mask & _bloom_bits(typeof(comparator), seq[s]) == 0)
+            elseif s > stop′ &&
+                (bloom_mask & _bloom_bits(typeof(comparator), seq[s]) == 0)
                 s -= m + 1
             elseif ambig_check && isambiguous(seq[s + 1])
                 s -= 1
             else
                 s -= query.bshift
             end
-        elseif s > stop′ && (bloom_mask & _bloom_bits(typeof(comparator), seq[s]) == 0)
+        elseif s > stop′ &&
+            (bloom_mask & _bloom_bits(typeof(comparator), seq[s]) == 0)
             s -= m + 1
         else
             s -= 1
@@ -230,7 +260,9 @@ Return the index of the first occurrence of `query` in `seq`.
 Symbol comparison is done using the predicate supplied to the query.
 By default, `ExactSearchQuery`'s predicate is `isequal`.
 """
-function Base.findnext(query::ExactSearchQuery, seq::BioSequence, start::Integer)
+function Base.findnext(query::ExactSearchQuery,
+                       seq::BioSequence,
+                       start::Integer)
     i = quicksearch(query, seq, start, lastindex(seq))
     if i == 0
         return nothing
@@ -239,7 +271,10 @@ function Base.findnext(query::ExactSearchQuery, seq::BioSequence, start::Integer
     end
 end
 
-Base.findfirst(pat::ExactSearchQuery, seq::BioSequence) = findnext(pat, seq, firstindex(seq))
+
+Base.findfirst(pat::ExactSearchQuery,
+               seq::BioSequence) = findnext(pat, seq, firstindex(seq))
+
 
 """
     findprev(query::ExactSearchQuery, seq::BioSequence, start::Integer)
@@ -249,7 +284,9 @@ Return the index of the last occurrence of `query` in `seq`.
 Symbol comparison is done using the predicate supplied to the query.
 By default, `ExactSearchQuery`'s predicate is `isequal`.
 """
-function Base.findprev(query::ExactSearchQuery, seq::BioSequence, start::Integer)
+function Base.findprev(query::ExactSearchQuery,
+                       seq::BioSequence,
+                       start::Integer)
     i = quickrsearch(query, seq, start, 1)
     if i == 0
         return nothing
@@ -258,11 +295,20 @@ function Base.findprev(query::ExactSearchQuery, seq::BioSequence, start::Integer
     end
 end
 
-Base.findlast(query::ExactSearchQuery, seq::BioSequence) = findprev(query, seq, lastindex(seq))
+
+function Base.findlast(query::ExactSearchQuery, seq::BioSequence)
+    findprev(query, seq, lastindex(seq))
+end
+
 
 """
     occursin(x::ExactSearchQuery, y::BioSequence)
 
 Return Bool indicating presence of exact match of x in y.
 """
-Base.occursin(x::ExactSearchQuery, y::BioSequence) = quicksearch(x, y, 1, lastindex(y)) != 0
+function Base.occursin(x::ExactSearchQuery, y::BioSequence)
+    quicksearch(x, y, 1, lastindex(y)) != 0
+end
+
+
+### ExactSearchQuery.jl ends here.

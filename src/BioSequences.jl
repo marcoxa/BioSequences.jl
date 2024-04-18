@@ -1,9 +1,14 @@
+### -*- Mode: Julia -*-
+
 ### BioSequences.jl
 ###
-### A julia package for the representation and manipulation of biological sequences.
+### A julia package for the representation and manipulation of
+### biological sequences.
 ###
 ### This file is a part of BioJulia.
 ### License is MIT: https://github.com/BioJulia/BioSequences.jl/blob/master/LICENSE
+
+using JLCL
 
 module BioSequences
 
@@ -190,6 +195,7 @@ export
     majorityvote
 
 using BioSymbols
+
 import Twiddle: enumerate_nibbles,
     count_0000_nibbles,
     count_1111_nibbles,
@@ -200,17 +206,25 @@ import Twiddle: enumerate_nibbles,
     count_11_bitpairs,
     count_nonzero_bitpairs,
     repeatpattern
+
 using Random
+
 
 include("alphabet.jl")
 
-# Load the bit-twiddling internals that optimised BioSequences methods depend on.
+### Load the bit-twiddling internals that optimised BioSequences
+### methods depend on.
+
 include("bit-manipulation/bit-manipulation.jl")
 
-# The generic, abstract BioSequence type
+
+### The generic, abstract BioSequence type.
+
 include("biosequence/biosequence.jl")
 
-# The definition of the LongSequence concrete type, and its method overloads...
+
+### The definition of the LongSequence concrete type, and its method
+### overloads...
 
 include("longsequences/longsequence.jl")
 include("longsequences/hash.jl")
@@ -219,12 +233,12 @@ include("longsequences/randseq.jl")
 include("geneticcode.jl")
 
 
-# Pattern searching in sequences...
+### Pattern searching in sequences...
+
 include("search/ExactSearchQuery.jl")
 include("search/ApproxSearchQuery.jl")
 include("search/re.jl")
 include("search/pwm.jl")
-
 
 
 struct Search{Q,I}
@@ -233,34 +247,48 @@ struct Search{Q,I}
     overlap::Bool
 end
 
+
 const DEFAULT_OVERLAP = true
+
 
 search(query, itr; overlap = DEFAULT_OVERLAP) = Search(query, itr, overlap)
 
-function Base.iterate(itr::Search, state=firstindex(itr.itr))
+
+function Base.iterate(itr::Search, state = firstindex(itr.itr))
     val = findnext(itr.query, itr.itr, state)
     val === nothing && return nothing
     state = itr.overlap ? first(val) + 1 : last(val) + 1
     return val, state
 end
 
-const HasRangeEltype = Union{<:ExactSearchQuery, <:ApproximateSearchQuery, <:Regex}
+
+const HasRangeEltype = Union{<: ExactSearchQuery,
+                             <: ApproximateSearchQuery,
+                             <: Regex} 
+
 
 Base.eltype(::Type{<:Search{Q}}) where {Q<:HasRangeEltype} = UnitRange{Int}
 Base.eltype(::Type{<:Search}) = Int
+
 Base.IteratorSize(::Type{<:Search}) = Base.SizeUnknown()
+
 
 """
     findall(pattern, sequence::BioSequence[,rng::UnitRange{Int}]; overlap::Bool=true)::Vector
 
 Find all occurrences of `pattern` in `sequence`.
 
-The return value is a vector of ranges of indices where the matching sequences were found.
-If there are no matching sequences, the return value is an empty vector.
+The return value is a vector of ranges of indices where the matching
+sequences were found.  If there are no matching sequences, the return
+value is an empty vector.
 
 The search is restricted to the specified range when `rng` is set.
 
-With the keyword argument `overlap` set as `true`, the start index for the next search gets set to the start of the current match plus one; if set to `false`, the start index for the next search gets set to the end of the current match plus one.
+With the keyword argument `overlap` set as `true`, the start index for
+the next search gets set to the start of the current match plus one;
+if set to `false`, the start index for the next search gets set to the
+end of the current match plus one.
+
 The default value for the keyword argument `overlap` is `true`.
 
 The `pattern` can be a `Biosymbol` or a search query.
@@ -268,6 +296,7 @@ The `pattern` can be a `Biosymbol` or a search query.
 See also [`ExactSearchQuery`](@ref), [`ApproximateSearchQuery`](@ref), [`PWMSearchQuery`](@ref).
 
 # Examples
+
 ```jldoctest
 julia> seq = dna"ACACACAC";
 
@@ -298,15 +327,25 @@ function Base.findall(pat, seq::BioSequence; overlap::Bool = DEFAULT_OVERLAP)
     return collect(search(pat, seq; overlap))
 end
 
-# Fix ambiguity with Base's findall
-Base.findall(f::Function, seq::BioSequence) = collect(search(f, seq; overlap=DEFAULT_OVERLAP))
 
-function Base.findall(pat, seq::BioSequence, rng::UnitRange{Int}; overlap::Bool = DEFAULT_OVERLAP)
+### Fix ambiguity with Base's findall
+
+Base.findall(f::Function, seq::BioSequence) =
+    collect(search(f, seq; overlap = DEFAULT_OVERLAP))
+
+
+function Base.findall(pat,
+                      seq::BioSequence,
+                      rng::UnitRange{Int};
+                      overlap::Bool = DEFAULT_OVERLAP)
     v = view(seq, rng)
     itr = search(pat, v; overlap)
     return map(x->parentindices(v)[1][x], itr)
 end
 
+
 include("workload.jl")
 
-end  # module BioSequences
+end                             # module BioSequences
+
+### BioSequences.jl ends here.

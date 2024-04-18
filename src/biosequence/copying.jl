@@ -1,8 +1,15 @@
+### -*- Mode: Julia -*-
+
+### copying.jl
+
+@in_module BioSequences
+
 
 function Base.copy!(dst::BioSequence, src::BioSequence)
     resize!(dst, length(src))
     copyto!(dst, src)
 end
+
 
 """
     copyto!(dst::LongSequence, src::BioSequence)
@@ -13,13 +20,15 @@ function Base.copyto!(dst::BioSequence, src::BioSequence)
     copyto!(dst, 1, src, 1, length(src))
 end
 
+
 """
     copyto!(dst::BioSequence, soff, src::BioSequence, doff, N)
 
-In-place copy `N` elements from `src` starting at `soff` to `dst`, starting at `doff`.
+In-place copy `N` elements from `src` starting at `soff` to `dst`,
+starting at `doff`.
 The length of `dst` must be greater than or equal to `N + doff - 1`.
-The first N elements of `dst` are overwritten,
-the other elements are left untouched. The alphabets of `src` and `dst` must be compatible.
+The first N elements of `dst` are overwritten, the other elements are
+left untouched. The alphabets of `src` and `dst` must be compatible.
 
 # Examples
 ```
@@ -32,9 +41,11 @@ julia> copyto!(seq, 2, rna"UUUU", 1, 4)
 TTTTTM
 ```
 """
-function Base.copyto!(dst::BioSequence{A}, doff::Integer,
-    src::BioSequence, soff::Integer,
-    N::Integer) where {A <: Alphabet}
+function Base.copyto!(dst::BioSequence{A},
+                      doff::Integer,
+                      src::BioSequence,
+                      soff::Integer,
+                      N::Integer) where {A <: Alphabet}
 
     @boundscheck checkbounds(dst, doff:doff+N-1)
     @boundscheck checkbounds(src, soff:soff+N-1)
@@ -45,3 +56,6 @@ function Base.copyto!(dst::BioSequence{A}, doff::Integer,
     
     return dst
 end
+
+
+### copying.jl ends here.

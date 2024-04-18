@@ -1,3 +1,5 @@
+### -*- Mode: Julia -*-
+
 ###
 ### Predicates & comparisons
 ###
@@ -5,6 +7,10 @@
 ###
 ### This file is a part of BioJulia.
 ### License is MIT: https://github.com/BioJulia/BioSequences.jl/blob/master/LICENSE.md
+
+
+@in_module BioSequences
+
 
 function Base.:(==)(seq1::BioSequence, seq2::BioSequence)
     seq1 === seq2 && return true
@@ -15,6 +21,7 @@ function Base.:(==)(seq1::BioSequence, seq2::BioSequence)
     return true
 end
 
+
 function Base.isless(seq1::BioSequence, seq2::BioSequence)
     @inbounds for i in Base.OneTo(min(length(seq1), length(seq2)))
         i1, i2 = seq1[i], seq2[i]
@@ -24,10 +31,12 @@ function Base.isless(seq1::BioSequence, seq2::BioSequence)
     return isless(length(seq1), length(seq2))
 end
 
+
 """
     isrepetitive(seq::BioSequence, n::Integer = length(seq))
 
-Return `true` if and only if `seq` contains a repetitive subsequence of length `≥ n`.
+Return `true` if and only if `seq` contains a repetitive subsequence
+of length `≥ n`.
 """
 function isrepetitive(seq::BioSequence, n::Integer = length(seq))
     if n < 0
@@ -61,8 +70,8 @@ end
 """
     ispalindromic(seq::NucSeq) -> Bool
 
-Check if `seq` is palindromic. A palindromic sequence is identical to its
-reverse-complement, so this should be equivalent to checking if
+Check if `seq` is palindromic. A palindromic sequence is identical to
+its reverse-complement, so this should be equivalent to checking if
 `seq == reverse_complement(seq)`.
 
 # Examples
@@ -83,10 +92,15 @@ function ispalindromic(seq::BioSequence{<:NucleicAcidAlphabet})
     _ispalindromic(seq)
 end
 
-# For two-bit alphabets, all odd-length sequences are not palindromic.
-function ispalindromic(seq::BioSequence{<:Union{DNAAlphabet{2}, RNAAlphabet{2}}})
+
+### For two-bit alphabets, all odd-length sequences are not
+### palindromic.
+
+function ispalindromic(seq::BioSequence{<: Union{DNAAlphabet{2},
+                                                 RNAAlphabet{2}}})
     isodd(length(seq)) ? false : _ispalindromic(seq)
 end
+
 
 @inline function _ispalindromic(seq)
     L = lastindex(seq)
@@ -96,10 +110,12 @@ end
     true
 end
 
+
 """
     hasambiguity(seq::BioSequence)
 
-Returns `true` if `seq` has an ambiguous symbol; otherwise return `false`.
+Returns `true` if `seq` has an ambiguous symbol; otherwise return
+`false`.
 """
 function hasambiguity(seq::BioSequence)
     for x in seq
@@ -109,16 +125,20 @@ function hasambiguity(seq::BioSequence)
     end
     return false
 end
-# 2 Bit specialization:
-@inline hasambiguity(seq::BioSequence{<:NucleicAcidAlphabet{2}}) = false
+
+
+### 2 Bit specialization.
+
+@inline hasambiguity(seq::BioSequence{<: NucleicAcidAlphabet{2}}) = false
+
 
 """
     iscanonical(seq::NucleotideSeq)
 
 Returns `true` if `seq` is canonical.
 
-For any sequence, there is a reverse complement, which is the same sequence, but
-on the complimentary strand of DNA:
+For any sequence, there is a reverse complement, which is the same
+sequence, but on the complimentary strand of DNA:
 
 ```
 ------->
@@ -147,3 +167,5 @@ function iscanonical(seq::NucleotideSeq)
     end
     return true
 end
+
+### predicates.jl ends here.

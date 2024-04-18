@@ -1,39 +1,46 @@
+### -*- Mode: Julia -*-
+
+### workload.jl
+
 using BioSequences
 using PrecompileTools
 
-# BioSequences define a whole bunch of types and methods, most of which is never used in any workload.
-# This workload here uses what I consider to be the most common operations,
-# on the most common types.
-# This is intended to strike a balance between precompilign that which the user probably needs, while
-# not wasting time loading code the user will never use.
-# The code not cached here will have to be precompiled in downstream packages
+### BioSequences define a whole bunch of types and methods, most of
+### which is never used in any workload.  This workload here uses what
+### I consider to be the most common operations, on the most common
+### types.
+### This is intended to strike a balance between precompilign that
+### which the user probably needs, while not wasting time loading code
+### the user will never use.  The code not cached here will have to be
+### precompiled in downstream packages
 
 @compile_workload begin
     seqs = [
         aa"TAGCW"
         dna"ATCGA"
     ]
+    
     for seq in [seqs; map(i -> view(i, 1:5), seqs)]
-        # printing
+        ## printing
         String(seq)
         print(IOBuffer(), seq)
 
         hash(seq)
 
-        # indexing
+        ## indexing
         seq[1]
         seq[2:3]
         seq[2] = seq[3]
         seq[2:3] = seq[3:4]
 
-        # join
+        ## join
         join([seq, seq])
         join((first(seq), last(seq)))
 
-        # pred
+        ## pred
         hasambiguity(seq)
 
-        # transformations
+        ## transformations
         reverse(seq)
         ungap(seq)
 
@@ -55,7 +62,7 @@ using PrecompileTools
         ungap!(seq)
     end
 
-    # Nucleotide
+    ## Nucleotide
     for seq in seqs[2:2]
         ispalindromic(seq)
         iscanonical(seq)
@@ -68,9 +75,12 @@ using PrecompileTools
         gc_content(seq)
     end
 
-    # Random
+    ## Random
     randdnaseq(5)
     randrnaseq(5)
     randaaseq(5)
     randseq(DNAAlphabet{2}(), 10)    
 end
+
+
+### workload.jl ends here.

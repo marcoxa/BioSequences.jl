@@ -1,3 +1,7 @@
+### -*- Mode: Julia -*-
+
+### geneticcode.jl
+
 ###
 ### Genetic Code
 ###
@@ -7,8 +11,13 @@
 ### This file is a part of BioJulia.
 ### License is MIT: https://github.com/BioJulia/BioSequences.jl/blob/master/LICENSE.md
 
+
+@in_module BioSequences
+
 const XNA = Union{DNA, RNA}
+
 function unambiguous_codon(a::XNA, b::XNA, c::XNA)
+    
     @inbounds begin
     bits = twobitnucs[reinterpret(UInt8, a) + 0x01] << 4 |
     twobitnucs[reinterpret(UInt8, b) + 0x01] << 2 |
@@ -18,12 +27,16 @@ function unambiguous_codon(a::XNA, b::XNA, c::XNA)
     return bits % UInt64
 end
 
-# A genetic code is a table mapping RNA 3-mers (i.e. RNAKmer{3}) to AminoAcids.
+
+### A genetic code is a table mapping RNA 3-mers (i.e. RNAKmer{3}) to
+### AminoAcids.
+
 "Type representing a Genetic Code"
 struct GeneticCode <: AbstractDict{UInt64, AminoAcid}
     name::String
     tbl::NTuple{64, AminoAcid}
 end
+
 
 ###
 ### Basic Functions
@@ -33,10 +46,15 @@ function Base.getindex(code::GeneticCode, codon::UInt64)
     return @inbounds code.tbl[codon + one(UInt64)]
 end
 
+
 Base.copy(code::GeneticCode) = code
+
+
 Base.length(code::GeneticCode) = 64
 
+
 Base.show(io::IO, code::GeneticCode) = print(io, code.name)
+
 
 function Base.show(io::IO, ::MIME"text/plain", code::GeneticCode)
     print(io, code.name)
@@ -55,10 +73,10 @@ function Base.show(io::IO, ::MIME"text/plain", code::GeneticCode)
     end
 end
 
+
 ###
 ### Iterating through genetic code
 ###
-
 
 function Base.iterate(code::GeneticCode, x = UInt64(0))
     if x > UInt64(0b111111)
@@ -67,6 +85,7 @@ function Base.iterate(code::GeneticCode, x = UInt64(0))
         return (x, @inbounds code[x]), x + 1
     end
 end
+
 
 ###
 ### Default genetic codes
@@ -80,7 +99,9 @@ struct TransTables
     end
 end
 
+
 Base.getindex(trans::TransTables, key::Integer) = trans.tables[Int(key)]
+
 
 function Base.show(io::IO, trans::TransTables)
     print(io, "Translation Tables:")
@@ -95,11 +116,13 @@ function Base.show(io::IO, trans::TransTables)
     end
 end
 
+
 """
 Genetic code list of NCBI.
 
-The standard genetic code is `ncbi_trans_table[1]` and others can be shown by
-`show(ncbi_trans_table)`.
+The standard genetic code is `ncbi_trans_table[1]` and others can be
+shown by `show(ncbi_trans_table)`.
+
 For more details, consult the next link:
 http://www.ncbi.nlm.nih.gov/Taxonomy/taxonomyhome.html/index.cgi?chapter=cgencodes.
 """
@@ -130,7 +153,9 @@ function parse_gencode(s)
     return GeneticCode(name, NTuple{64, AminoAcid}(codearr))
 end
 
-# Genetic codes translation tables are taken from the NCBI taxonomy database.
+
+### Genetic codes translation tables are taken from the NCBI taxonomy
+### database.
 
 @register_ncbi_gencode 1 standard_genetic_code """
 1. The Standard Code
@@ -142,6 +167,7 @@ Base2  = TTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGG
 Base3  = TCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAG
 """
 
+
 @register_ncbi_gencode 2 vertebrate_mitochondrial_genetic_code """
 2. The Vertebrate Mitochondrial Code
 
@@ -151,6 +177,7 @@ Base1  = TTTTTTTTTTTTTTTTCCCCCCCCCCCCCCCCAAAAAAAAAAAAAAAAGGGGGGGGGGGGGGGG
 Base2  = TTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGG
 Base3  = TCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAG
 """
+
 
 @register_ncbi_gencode 3 yeast_mitochondrial_genetic_code """
 3. The Yeast Mitochondrial Code
@@ -162,6 +189,7 @@ Base2  = TTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGG
 Base3  = TCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAG
 """
 
+
 @register_ncbi_gencode 4 mold_mitochondrial_genetic_code """
 4. The Mold, Protozoan, and Coelenterate Mitochondrial Code and the Mycoplasma/Spiroplasma Code
 
@@ -171,6 +199,7 @@ Base1  = TTTTTTTTTTTTTTTTCCCCCCCCCCCCCCCCAAAAAAAAAAAAAAAAGGGGGGGGGGGGGGGG
 Base2  = TTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGG
 Base3  = TCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAG
 """
+
 
 @register_ncbi_gencode 5 invertebrate_mitochondrial_genetic_code """
 5. The Invertebrate Mitochondrial Code
@@ -182,6 +211,7 @@ Base2  = TTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGG
 Base3  = TCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAG
 """
 
+
 @register_ncbi_gencode 6 ciliate_nuclear_genetic_code """
 6. The Ciliate, Dasycladacean and Hexamita Nuclear Code
 
@@ -191,6 +221,7 @@ Base1  = TTTTTTTTTTTTTTTTCCCCCCCCCCCCCCCCAAAAAAAAAAAAAAAAGGGGGGGGGGGGGGGG
 Base2  = TTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGG
 Base3  = TCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAG
 """
+
 
 @register_ncbi_gencode 9 echinoderm_mitochondrial_genetic_code """
 9. The Echinoderm and Flatworm Mitochondrial Code
@@ -202,6 +233,7 @@ Base2  = TTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGG
 Base3  = TCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAG
 """
 
+
 @register_ncbi_gencode 10 euplotid_nuclear_genetic_code """
 10. The Euplotid Nuclear Code
 
@@ -211,6 +243,7 @@ Base1  = TTTTTTTTTTTTTTTTCCCCCCCCCCCCCCCCAAAAAAAAAAAAAAAAGGGGGGGGGGGGGGGG
 Base2  = TTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGG
 Base3  = TCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAG
 """
+
 
 @register_ncbi_gencode 11 bacterial_plastid_genetic_code """
 11. The Bacterial, Archaeal and Plant Plastid Code
@@ -222,6 +255,7 @@ Base2  = TTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGG
 Base3  = TCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAG
 """
 
+
 @register_ncbi_gencode 12 alternative_yeast_nuclear_genetic_code """
 12. The Alternative Yeast Nuclear Code
 
@@ -231,6 +265,7 @@ Base1  = TTTTTTTTTTTTTTTTCCCCCCCCCCCCCCCCAAAAAAAAAAAAAAAAGGGGGGGGGGGGGGGG
 Base2  = TTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGG
 Base3  = TCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAG
 """
+
 
 @register_ncbi_gencode 13 ascidian_mitochondrial_genetic_code """
 13. The Ascidian Mitochondrial Code
@@ -242,6 +277,7 @@ Base2  = TTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGG
 Base3  = TCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAG
 """
 
+
 @register_ncbi_gencode 14 alternative_flatworm_mitochondrial_genetic_code """
 14. The Alternative Flatworm Mitochondrial Code
 
@@ -251,6 +287,7 @@ Base1  = TTTTTTTTTTTTTTTTCCCCCCCCCCCCCCCCAAAAAAAAAAAAAAAAGGGGGGGGGGGGGGGG
 Base2  = TTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGG
 Base3  = TCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAG
 """
+
 
 @register_ncbi_gencode 16 chlorophycean_mitochondrial_genetic_code """
 16. Chlorophycean Mitochondrial Code
@@ -262,6 +299,7 @@ Base2  = TTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGG
 Base3  = TCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAG
 """
 
+
 @register_ncbi_gencode 21 trematode_mitochondrial_genetic_code """
 21. Trematode Mitochondrial Code
 
@@ -271,6 +309,7 @@ Base1  = TTTTTTTTTTTTTTTTCCCCCCCCCCCCCCCCAAAAAAAAAAAAAAAAGGGGGGGGGGGGGGGG
 Base2  = TTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGG
 Base3  = TCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAG
 """
+
 
 @register_ncbi_gencode 22 scenedesmus_obliquus_mitochondrial_genetic_code """
 22. Scenedesmus obliquus Mitochondrial Code
@@ -282,6 +321,7 @@ Base2  = TTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGG
 Base3  = TCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAG
 """
 
+
 @register_ncbi_gencode 23 thraustochytrium_mitochondrial_genetic_code """
 23. Thraustochytrium Mitochondrial Code
 
@@ -291,6 +331,7 @@ Base1  = TTTTTTTTTTTTTTTTCCCCCCCCCCCCCCCCAAAAAAAAAAAAAAAAGGGGGGGGGGGGGGGG
 Base2  = TTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGG
 Base3  = TCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAG
 """
+
 
 @register_ncbi_gencode 24 pterobrachia_mitochondrial_genetic_code """
 24. Pterobranchia Mitochondrial Code
@@ -302,6 +343,7 @@ Base2  = TTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGG
 Base3  = TCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAG
 """
 
+
 @register_ncbi_gencode 25 candidate_division_sr1_genetic_code """
 25. Candidate Division SR1 and Gracilibacteria Code
 
@@ -312,9 +354,11 @@ Base2  = TTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGG
 Base3  = TCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAG
 """
 
+
 ###
 ### Translation
 ###
+
 
 """
     translate(seq, code=standard_genetic_code, allow_ambiguous_codons=true, alternative_start=false)
@@ -322,51 +366,62 @@ Base3  = TCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAG
 Translate an `LongRNA` or a `LongDNA` to an `LongAA`.
 
 Translation uses genetic code `code` to map codons to amino acids. See
-`ncbi_trans_table` for available genetic codes.
-If codons in the given sequence cannot determine a unique amino acid, they
-will be translated to `AA_X` if `allow_ambiguous_codons` is `true` and otherwise
-result in an error. For organisms that utilize alternative start codons, one
-can set `alternative_start=true`, in which case the first codon will always be
-converted to a methionine.
+`ncbi_trans_table` for available genetic codes.  If codons in the
+given sequence cannot determine a unique amino acid, they will be
+translated to `AA_X` if `allow_ambiguous_codons` is `true` and
+otherwise result in an error. For organisms that utilize alternative
+start codons, one can set `alternative_start=true`, in which case the
+first codon will always be converted to a methionine.
 """
 function translate(ntseq::SeqOrView;
-    code::GeneticCode = standard_genetic_code,
-    allow_ambiguous_codons::Bool = true,
-    alternative_start::Bool = false
-)
+                   code::GeneticCode = standard_genetic_code,
+                   allow_ambiguous_codons::Bool = true,
+                   alternative_start::Bool = false
+                   )
+    
     len = div((length(ntseq) % UInt) * 11, 32)
-    translate!(LongAA(undef, len), ntseq; code = code,
-    allow_ambiguous_codons = allow_ambiguous_codons, alternative_start = alternative_start)
+    translate!(LongAA(undef, len),
+               ntseq;
+               code = code,
+               allow_ambiguous_codons = allow_ambiguous_codons,
+               alternative_start = alternative_start)
 end
 
+
 function translate!(aaseq::LongAA,
-    ntseq::SeqOrView{<:NucleicAcidAlphabet{2}};
-    code::GeneticCode = standard_genetic_code,
-    allow_ambiguous_codons::Bool = true,
-    alternative_start::Bool = false
-)
+                    ntseq::SeqOrView{<: NucleicAcidAlphabet{2}};
+                    code::GeneticCode = standard_genetic_code,
+                    allow_ambiguous_codons::Bool = true,
+                    alternative_start::Bool = false
+                    )
     n_aa, remainder = divrem(length(ntseq) % UInt, 3)
-    iszero(remainder) || error("LongRNA length is not divisible by three. Cannot translate.")
+    iszero(remainder) ||
+        error("LongRNA length is not divisible by three. Cannot translate.")
     resize!(aaseq, n_aa)
     @inbounds for i in 1:n_aa
-        a = ntseq[3i-2]
-        b = ntseq[3i-1]
+        a = ntseq[3i - 2]
+        b = ntseq[3i - 1]
         c = ntseq[3i]
         codon = unambiguous_codon(a, b, c)
         aaseq[i] = code[codon]
     end
-    alternative_start && !isempty(aaseq) && (@inbounds aaseq[1] = AA_M)
+    alternative_start &&
+        !isempty(aaseq) &&
+        (@inbounds aaseq[1] = AA_M)
     aaseq
 end
 
+
 function translate!(aaseq::LongAA,
-    ntseq::SeqOrView{<:NucleicAcidAlphabet{4}};
-    code::GeneticCode = standard_genetic_code,
-    allow_ambiguous_codons::Bool = true,
-    alternative_start::Bool = false
-)
+                    ntseq::SeqOrView{<:NucleicAcidAlphabet{4}};
+                    code::GeneticCode = standard_genetic_code,
+                    allow_ambiguous_codons::Bool = true,
+                    alternative_start::Bool = false
+                    )
+    
     n_aa, remainder = divrem(length(ntseq) % UInt, 3)
-    iszero(remainder) || error("LongRNA length is not divisible by three. Cannot translate.")
+    iszero(remainder) ||
+        error("LongRNA length is not divisible by three. Cannot translate.")
     resize!(aaseq, n_aa)
     @inbounds for i in 1:n_aa
         a = reinterpret(RNA, ntseq[3i-2])
@@ -384,21 +439,24 @@ function translate!(aaseq::LongAA,
     aaseq
 end
 
-function try_translate_ambiguous_codon(
-    code::GeneticCode,
-    x::RNA,
-    y::RNA,
-    z::RNA,
-    allow_ambiguous::Bool
-)::AminoAcid
-    ((a, b, c), unambigs) = Iterators.peel(
-        Iterators.product(map(UnambiguousRNAs, (x, y, z))...)
-    )
+
+function try_translate_ambiguous_codon(code::GeneticCode,
+                                       x::RNA,
+                                       y::RNA,
+                                       z::RNA,
+                                       allow_ambiguous::Bool
+                                       )::AminoAcid
+    
+    ((a, b, c), unambigs) =
+        Iterators.peel(Iterators.product(map(UnambiguousRNAs,
+                                             (x, y, z))...))
+    
     aa = @inbounds code[unambiguous_codon(a, b, c)]
     @inbounds for (a, b, c) in unambigs
         aa_new = code[unambiguous_codon(a, b, c)]
         aa_new == aa && continue
-        allow_ambiguous || error("codon ", a, b, c, " cannot be unambiguously translated")
+        allow_ambiguous ||
+            error("codon ", a, b, c, " cannot be unambiguously translated")
         aa = if aa_new in (AA_N, AA_D) && aa in (AA_N, AA_D, AA_B)
             AA_B
         elseif aa_new in (AA_I, AA_L) && aa in (AA_I, AA_L, AA_J)
@@ -413,15 +471,23 @@ function try_translate_ambiguous_codon(
     return aa
 end
 
+
 struct UnambiguousRNAs
     x::RNA
 end
 
+
 Base.eltype(::Type{UnambiguousRNAs}) = RNA
+
+
 Base.length(x::UnambiguousRNAs) = count_ones(reinterpret(UInt8, x.x))
-function Base.iterate(x::UnambiguousRNAs, state=reinterpret(UInt8, x.x))
+
+
+function Base.iterate(x::UnambiguousRNAs, state = reinterpret(UInt8, x.x))
     iszero(state) && return nothing
     rna = reinterpret(RNA, 0x01 << (trailing_zeros(state) & 7))
     (rna, state & (state - 0x01))
 end
 
+
+### geneticcode.jl ends here.

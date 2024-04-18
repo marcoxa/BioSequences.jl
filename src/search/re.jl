@@ -1,19 +1,24 @@
-# Regular Expression
-# ==================
-#
-# Regular expression sequence search tools.
-#
-# This file is a part of BioJulia.
-# License is MIT: https://github.com/BioJulia/BioSequences.jl/blob/master/LICENSE.md
+### -*- Mode: Julia -*-
 
-# String Decorators
-# -----------------
+### re.jl
+
+### Regular Expression
+### ==================
+###
+### Regular expression sequence search tools.
+###
+### This file is a part of BioJulia.
+### License is MIT: https://github.com/BioJulia/BioSequences.jl/blob/master/LICENSE.md
+
+### String Decorators
+### -----------------
 
 """
     biore"PAT"sym
 
-Construct a PCRE `BioRegex` from pattern `PAT`. `sym` can be any of `d`/`dna`, `r`/`rna`,
-or `a`/`aa`. BioRegex can also be constructed directly using e.g. `BioRegex{DNA}("[TA]G")`.
+Construct a PCRE `BioRegex` from pattern `PAT`. `sym` can be any of
+`d`/`dna`, `r`/`rna`, or `a`/`aa`. BioRegex can also be constructed
+directly using e.g. `BioRegex{DNA}("[TA]G")`.
 """
 macro biore_str(pat, opt...)
     if isempty(opt)
@@ -33,10 +38,12 @@ macro biore_str(pat, opt...)
     end
 end
 
+
 """
     prosite"PAT"
 
-Equivalent to `BioRegex{AminoAcid}("PAT", syntax=:prosite)`, but evaluated at parse-time.
+Equivalent to `BioRegex{AminoAcid}("PAT", syntax=:prosite)`, but
+evaluated at parse-time.
 """
 macro prosite_str(pat)
     :($(RE.Regex{AminoAcid}(pat, :prosite)))
@@ -47,25 +54,36 @@ module RE
 
 import BioSequences
 
-# Syntax tree
-# -----------
+### Syntax tree
+### -----------
 
 mutable struct SyntaxTree
     head::Symbol
     args::Vector{Any}
 
     function SyntaxTree(head, args)
-        @assert head ∈ (
-            :|,
-            :*, :+, Symbol("?"), :range,
-            Symbol("*?"), Symbol("+?"), Symbol("??"), Symbol("range?"),
-            :set, :compset, :sym, :bits,
-            :capture, :nocapture, :concat, :head, :last)
+        @assert head ∈ (:|, :*, :+,
+                        Symbol("?"),
+                        :range,
+                        Symbol("*?"),
+                        Symbol("+?"),
+                        Symbol("??"),
+                        Symbol("range?"),
+                        :set,
+                        :compset,
+                        :sym,
+                        :bits,
+                        :capture,
+                        :nocapture,
+                        :concat,
+                        :head,
+                        :last)
         return new(head, args)
     end
 end
 
 expr(head, args) = SyntaxTree(head, args)
+
 
 function charset(s)
     set = Set{Char}()
@@ -74,19 +92,23 @@ function charset(s)
     return set
 end
 
-# list of symbols available for each symbol type
+
+### List of symbols available for each symbol type.
+
 const symbols = IdDict{Any, Set{Char}}(
     BioSequences.DNA => charset("ACGTMRWSYKVHDBN"),
     BioSequences.RNA => charset("ACGUMRWSYKVHDBN"),
     BioSequences.AminoAcid     => charset("ARNDCQEGHILKMFPSTWYVOUBJZX"))
 
+
 macro check(ex, err)
     esc(quote
-        if !$ex
-            throw($err)
-        end
-    end)
+            if !$ex
+                throw($err)
+            end
+        end)
 end
+
 
 function parse(::Type{T}, pat::AbstractString) where {T}
     parens = Char[]  # stack of parens
@@ -112,10 +134,10 @@ function parserec(::Type{T}, pat, s, parens) where {T}
             @check !isempty(args) ArgumentError("unexpected '?'")
             arg = pop!(args)
             if arg.head ∈ (:*, :+, Symbol("?"), :range)
-                # lazy quantifier
+                ## Lazy quantifier.
                 push!(args, expr(Symbol(arg.head, '?'), arg.args))
             else
-                # zero-or-one quantifier
+                ## Zero-or-one quantifier.
                 push!(args, expr(Symbol("?"), [arg]))
             end
         elseif c == '{'
@@ -164,6 +186,7 @@ function parserec(::Type{T}, pat, s, parens) where {T}
     return expr(:concat, args), s
 end
 
+
 function parserange(pat, s)
     lo = hi = -1
     comma = false
@@ -209,12 +232,14 @@ function parserange(pat, s)
     end
 end
 
+
 function peek(pat, s)
     if s === nothing
         throw(ArgumentError("unexpected end of pattern"))
     end
     return s[1]
 end
+
 
 function parseset(::Type{T}, pat, s) where {T}
     if peek(pat, s) == '^'
@@ -238,6 +263,7 @@ function parseset(::Type{T}, pat, s) where {T}
     end
     return expr(head, set), s
 end
+
 
 function parse_prosite(pat)
     s = iterate(pat)
@@ -273,6 +299,7 @@ function parse_prosite(pat)
     end
     return expr(:concat, args)
 end
+
 
 function parserange_prosite(pat, s)
     lo = hi = -1
@@ -314,6 +341,7 @@ function parserange_prosite(pat, s)
     end
 end
 
+
 function parseset_prosite(pat, s, close)
     set = BioSequences.AminoAcid[]
     while s !== nothing
@@ -334,6 +362,7 @@ function parseset_prosite(pat, s, close)
     end
 end
 
+
 function bits2sym(::Type{T}, bits::UInt32) where {T}
     for x in BioSequences.alphabet(T)
         if BioSequences.compatbits(x) == bits
@@ -343,27 +372,37 @@ function bits2sym(::Type{T}, bits::UInt32) where {T}
     error("bits are not found")
 end
 
-mask(::Type{T}) where {T<:BioSequences.NucleicAcid} = (UInt32(1) << 4) - one(UInt32)
-@assert Int(reinterpret(UInt8, BioSequences.AA_U)) + 1 == 22  # check there are 22 unambiguous amino acids
+
+function mask(::Type{T}) where {T <: BioSequences.NucleicAcid}
+    (UInt32(1) << 4) - one(UInt32)
+end
+
+
+### Check there are 22 unambiguous amino acids.
+
+@assert Int(reinterpret(UInt8, BioSequences.AA_U)) + 1 == 22
+
+
 mask(::Type{BioSequences.AminoAcid}) = (UInt32(1) << 22) - one(UInt32)
+
 
 function desugar(::Type{T}, tree::SyntaxTree) where {T}
     head = tree.head
     args = tree.args
     if head == :+
-        # e+ => ee*
+        ## e+ => ee*
         head = :concat
         args = [args[1], expr(:*, [args[1]])]
     elseif head == Symbol("+?")
-        # e+? => ee*?
+        ## e+? => ee*?
         head = :concat
         args = [args[1], expr(Symbol("*?"), [args[1]])]
     elseif head == Symbol("?")
-        # e? => e|
+        ## e? => e|
         head = :|
         args = [args[1], expr(:concat, [])]
     elseif head == Symbol("??")
-        # e?? => |e
+        ## e?? => |e
         head = :|
         args = [expr(:concat, []), args[1]]
     elseif head == :sym
@@ -390,15 +429,15 @@ function desugar(::Type{T}, tree::SyntaxTree) where {T}
         pat = args[2]
         greedy = head == :range
         if isa(rng, Int)
-            # e{m} => eee...e
-            #         |<-m->|
+            ## e{m} => eee...e
+            ##         |<-m->|
             head = :concat
             args = fill(pat, rng)
         elseif isa(rng, Tuple{Int})
-            # e{m,} => eee...ee*   (greedy)
-            #          |<-m->|
-            # e{m,} => eee...ee*?  (lazy)
-            #          |<-m->|
+            ## e{m,} => eee...ee*   (greedy)
+            ##          |<-m->|
+            ## e{m,} => eee...ee*?  (lazy)
+            ##          |<-m->|
             head = :concat
             args = fill(pat, rng[1])
             if greedy
@@ -407,10 +446,10 @@ function desugar(::Type{T}, tree::SyntaxTree) where {T}
                 push!(args, expr(Symbol("*?"), [pat]))
             end
         elseif isa(rng, Tuple{Int,Int})
-            # e{m,n} => eee...eee|eee...ee|...|eee...e  (greedy)
-            #           |<- n ->|              |<-m->|
-            # e{m,n} => eee...e|eee...ee|...|eee...eee  (lazy)
-            #           |<-m->|              |<- n ->|
+            ## e{m,n} => eee...eee|eee...ee|...|eee...e  (greedy)
+            ##           |<- n ->|              |<-m->|
+            ## e{m,n} => eee...e|eee...ee|...|eee...eee  (lazy)
+            ##           |<-m->|              |<- n ->|
             m, n = rng
             @assert m ≤ n
             if m == n
@@ -420,9 +459,13 @@ function desugar(::Type{T}, tree::SyntaxTree) where {T}
                 head = :|
                 f = (k, t) -> expr(:|, [expr(:concat, fill(pat, k)), t])
                 if greedy
-                    args = foldr(f, n:-1:m+1, init=expr(:concat, fill(pat, m))).args
+                    args = foldr(f,
+                                 n:-1:m + 1,
+                                 init = expr(:concat, fill(pat, m))).args
                 else
-                    args = foldr(f, m:1:n-1, init=expr(:concat, fill(pat, n))).args
+                    args = foldr(f,
+                                 m:1:n - 1,
+                                 init = expr(:concat, fill(pat, n))).args
                 end
             end
         else
@@ -436,24 +479,25 @@ function desugar(::Type{T}, tree::SyntaxTree) where {T}
     return expr(head, args)
 end
 
+
 function desugar(::Type{T}, atom) where {T}
     return atom
 end
 
 
-# Compiler
-# --------
+### Compiler
+### --------
 
-#  tag  | operation |           meaning
-# ------|-----------|----------------------------
-# 0b000 | match     | the pattern matches
-# 0b001 | bits b    | matches b in bit-wise way
-# 0b010 | jump l    | jump to l
-# 0b011 | push l    | push l and go to next
-# 0b100 | save i    | save string state to i
-# 0b101 | head      | matches the head of string
-# 0b110 | last      | matches the last of string
-# 0b111 | fork l    | push next and go to l
+###  tag  | operation |           meaning
+### ------|-----------|----------------------------
+### 0b000 | match     | the pattern matches
+### 0b001 | bits b    | matches b in bit-wise way
+### 0b010 | jump l    | jump to l
+### 0b011 | push l    | push l and go to next
+### 0b100 | save i    | save string state to i
+### 0b101 | head      | matches the head of string
+### 0b110 | last      | matches the last of string
+### 0b111 | fork l    | push next and go to l
 
 primitive type Op 32 end
 
@@ -466,7 +510,9 @@ const HeadTag  = UInt32(0b101) << 29
 const LastTag  = UInt32(0b110) << 29
 const ForkTag  = UInt32(0b111) << 29
 
-# constructors
+
+### Constructors.
+
 match() = reinterpret(Op, MatchTag)
 bits(b::UInt32) = reinterpret(Op, BitsTag | b)
 jump(l::Int) = reinterpret(Op, JumpTag | UInt32(l))
@@ -476,15 +522,19 @@ head() = reinterpret(Op, HeadTag)
 last() = reinterpret(Op, LastTag)
 fork(l::Int) = reinterpret(Op, ForkTag | UInt32(l))
 
+
 const operand_mask = (UInt32(1) << 29) - one(UInt32)
+
 
 function tag(op::Op)
     return reinterpret(UInt32, op) & ~operand_mask
 end
 
+
 function operand(op::Op)
     return reinterpret(UInt32, op) &  operand_mask
 end
+
 
 function Base.show(io::IO, op::Op)
     t = tag(op)
@@ -510,6 +560,7 @@ function Base.show(io::IO, op::Op)
     end
 end
 
+
 function print_program(prog::Vector{Op})
     L = lastindex(prog)
     for l in 1:L
@@ -520,6 +571,7 @@ function print_program(prog::Vector{Op})
     end
 end
 
+
 function compile(tree::SyntaxTree)
     code = Op[]
     push!(code, save(1))
@@ -528,6 +580,7 @@ function compile(tree::SyntaxTree)
     push!(code, match())
     return code
 end
+
 
 function compilerec!(code, tree::SyntaxTree, k)
     h = tree.head
@@ -575,17 +628,19 @@ function compilerec!(code, tree::SyntaxTree, k)
 end
 
 
-# Virtual machine
-# ---------------
+### Virtual machine
+### ---------------
 
 """
     Regex{T}(pattern::AbstractString, syntax=:pcre)
 
-Biological regular expression to seatch for `pattern` in sequences of type `T`, where
-`T` can be `DNA`, `RNA`, and `AminoAcid`. `syntax` can be `:pcre` or `:prosite` for AminoAcid
-acids.
+Biological regular expression to seatch for `pattern` in sequences of
+type `T`, where `T` can be `DNA`, `RNA`, and `AminoAcid`. `syntax` can
+be `:pcre` or `:prosite` for AminoAcid acids.
 """
-struct Regex{T <: Union{BioSequences.DNA, BioSequences.RNA, BioSequences.AminoAcid}}
+struct Regex{T <: Union{BioSequences.DNA,
+                        BioSequences.RNA,
+                        BioSequences.AminoAcid}}
     pat::String       # regular expression pattern (for printing)
     code::Vector{Op}  # compiled code
     nsaves::Int       # the number of `save` operations in `code`
@@ -611,6 +666,7 @@ struct Regex{T <: Union{BioSequences.DNA, BioSequences.RNA, BioSequences.AminoAc
     end
 end
 
+
 function Base.show(io::IO, re::Regex{T}) where {T}
     if T == BioSequences.DNA
         opt = "dna"
@@ -622,23 +678,34 @@ function Base.show(io::IO, re::Regex{T}) where {T}
     print(io, "biore\"", re.pat, "\"", opt)
 end
 
-# This is useful when testing
+
+### This is useful when testing.
+
 function Base.:(==)(x::Regex, y::Regex)
-    typeof(x) == typeof(y) && x.pat == y.pat && x.code == y.code && x.nsaves == y.nsaves
+    typeof(x) == typeof(y) &&
+        x.pat == y.pat &&
+        x.code == y.code &&
+        x.nsaves == y.nsaves
 end
+
 
 """
     RegexMatch
 
 Result of matching by `Regex`.
 
+# Examples:
+
+```
 julia> match(biore"A(C[TG])+N(CA)"d, dna"ACGACA")
-RegexMatch("ACGACA", 1="CG", 2="", 3="CA")
+RegexMatch("ACGACA", 1 = "CG", 2 = "", 3 = "CA")
+```
 """
 struct RegexMatch{S}
     seq::S
     captured::Vector{Int}
 end
+
 
 function Base.show(io::IO, m::RegexMatch)
     print(io, "RegexMatch(")
@@ -651,22 +718,25 @@ function Base.show(io::IO, m::RegexMatch)
     print(io, ')')
 end
 
+
 """
     matched(match::BioRegexMatch)
 
 Return the matched pattern as a `BioSequence`.
 """
 function matched(m::RegexMatch{S}) where {S}
-    return m.seq[m.captured[1]:m.captured[2]-1]
+    return m.seq[m.captured[1]:m.captured[2] - 1]
 end
 
 
 """
     captured(match::BioRegexMatch)
 
-Return a vector of the captured patterns, where a pattern not captured is `nothing`.
+Return a vector of the captured patterns, where a pattern not captured
+is `nothing`.
 
 # Examples:
+
 ```
 julia> captured(biore"A(C[TG])+N"d, dna"ACGAA"")
 2-element Vector{Union{Nothing, LongDNA{4}, LongNuc{4, DNAAlphabet{4}}}}:
@@ -675,10 +745,11 @@ julia> captured(biore"A(C[TG])+N"d, dna"ACGAA"")
 ```
 """
 function captured(m::RegexMatch{S}) where {S}
-    return [m.captured[2k-1] != 0 && m.captured[2k] != 0 ?
-            m.seq[m.captured[2k-1]:m.captured[2k]-1] : nothing
+    return [m.captured[2k - 1] != 0 && m.captured[2k] != 0 ?
+            m.seq[m.captured[2k - 1]:m.captured[2k] - 1] : nothing
             for k in 2:div(length(m.captured), 2)]
 end
+
 
 function checkeltype(re::Regex{T}, seq::BioSequences.BioSequence) where {T}
     if eltype(seq) != T
@@ -686,18 +757,25 @@ function checkeltype(re::Regex{T}, seq::BioSequences.BioSequence) where {T}
     end
 end
 
-function Base.match(re::Regex{T}, seq::BioSequences.BioSequence, start::Integer=1) where {T}
+
+function Base.match(re::Regex{T},
+                    seq::BioSequences.BioSequence,
+                    start::Integer=1) where {T}
     checkeltype(re, seq)
 
-    # use the first unambiguous symbol in the regular expression to find the
-    # next starting position of pattern matching; this improves the performance
-    if length(re.code) ≥ 2 && tag(re.code[2]) == BitsTag && count_ones(operand(re.code[2])) == 1
+    ### Use the first unambiguous symbol in the regular expression to
+    ### find the next starting position of pattern matching; this
+    ### improves the performance.
+    
+    if length(re.code) ≥ 2 &&
+        tag(re.code[2]) == BitsTag &&
+        count_ones(operand(re.code[2])) == 1
         firstsym = bits2sym(T, operand(re.code[2]))
     else
         firstsym = BioSequences.gap(T)
     end
 
-    # a thread is `(<program counter>, <sequence's iterator state>)`
+    ### A thread is `(<program counter>, <sequence's iterator state>)`
     threads = Stack{Tuple{Int,Int}}()
     captured = Vector{Int}(undef, re.nsaves)
     s = start
@@ -722,7 +800,10 @@ function Base.match(re::Regex{T}, seq::BioSequences.BioSequence, start::Integer=
     return nothing
 end
 
-function Base.findfirst(re::Regex{T}, seq::BioSequences.BioSequence, start::Integer=1) where {T}
+
+function Base.findfirst(re::Regex{T},
+                        seq::BioSequences.BioSequence,
+                        start::Integer=1) where {T}
     checkeltype(re, seq)
     m = Base.match(re, seq, start)
     if m === nothing
@@ -732,24 +813,30 @@ function Base.findfirst(re::Regex{T}, seq::BioSequences.BioSequence, start::Inte
     end
 end
 
-struct RegexMatchIterator{T,S}
+
+struct RegexMatchIterator{T, S}
     re::Regex{T}
     seq::S
     overlap::Bool
 
-    function RegexMatchIterator{T,S}(re::Regex{T}, seq::S, overlap::Bool) where {T,S}
+    function RegexMatchIterator{T,S}(re::Regex{T},
+                                     seq::S,
+                                     overlap::Bool) where {T,S}
         checkeltype(re, seq)
         return new{T,S}(re, seq, overlap)
     end
 end
 
+
 function Base.IteratorSize(::Type{RegexMatchIterator{T,S}}) where {T,S}
     return Base.SizeUnknown()
 end
 
+
 function Base.eltype(::Type{RegexMatchIterator{T,S}}) where {T,S}
     return RegexMatch{S}
 end
+
 
 function Base.iterate(iter::RegexMatchIterator)
     threads = Stack{Tuple{Int,Int}}()
@@ -761,6 +848,7 @@ function Base.iterate(iter::RegexMatchIterator)
     return iterate(iter, state)
 end
 
+
 function Base.iterate(iter::RegexMatchIterator, state)
     item, threads, captured, s = state
     if item === nothing
@@ -769,6 +857,7 @@ function Base.iterate(iter::RegexMatchIterator, state)
         item, advance!(threads, captured, s, iter.re, iter.seq, iter.overlap)
     end
 end
+
 
 function advance!(threads, captured, s, re, seq, overlap)
     while true
@@ -794,16 +883,23 @@ function advance!(threads, captured, s, re, seq, overlap)
     return nothing, threads, captured, s
 end
 
-function Base.eachmatch(re::Regex{T}, seq::BioSequences.BioSequence, overlap::Bool = true) where {T}
+
+function Base.eachmatch(re::Regex{T},
+                        seq::BioSequences.BioSequence,
+                        overlap::Bool = true) where {T}
     checkeltype(re, seq)
     return RegexMatchIterator{T,typeof(seq)}(re, seq, overlap)
 end
 
-function Base.occursin(re::Regex{T}, seq::BioSequences.BioSequence) where {T}
+
+function Base.occursin(re::Regex{T},
+                       seq::BioSequences.BioSequence) where {T}
     return Base.match(re, seq) !== nothing
 end
 
-# simple stack
+
+### Simple stack.
+
 mutable struct Stack{T}
     top::Int
     data::Vector{T}
@@ -813,9 +909,11 @@ mutable struct Stack{T}
     end
 end
 
+
 function Base.isempty(stack::Stack)
     return stack.top == 0
 end
+
 
 @inline function Base.push!(stack::Stack{T}, x::T) where {T}
     if stack.top + 1 > length(stack.data)
@@ -827,23 +925,29 @@ end
     return stack
 end
 
+
 @inline function Base.pop!(stack::Stack)
     item = stack.data[stack.top]
     stack.top -= 1
     return item
 end
 
+
 @inline function Base.empty!(stack::Stack)
     stack.top = 0
     return stack
 end
 
-# run pattern maching using the current `threads` stack. Captured positions are
-# stored in the preallocated `captured`. If match is found, this returns `true`
-# immediately; otherwise returns `false`.
+
+### Run pattern maching using the current `threads` stack. Captured
+### positions are stored in the preallocated `captured`. If match is
+### found, this returns `true` immediately; otherwise returns `false`.
+
 function runmatch!(threads::Stack{Tuple{Int,Int}},
                    captured::Vector{Int},
-                   re::Regex, seq::BioSequences.BioSequence)
+                   re::Regex,
+                   seq::BioSequences.BioSequence)
+    
     while !isempty(threads)
         pc::Int, s = pop!(threads)
         while true
@@ -893,8 +997,13 @@ end
 
 end  # module RE
 
-# exported from BioSequences
+
+### Exported from BioSequences.
+
 const matched = RE.matched
 const captured = RE.captured
 const BioRegex = RE.Regex
 const BioRegexMatch = RE.RegexMatch
+
+
+### re.jl ends here.

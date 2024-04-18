@@ -1,25 +1,35 @@
+### -*- Mode: Julia -*-
 
-# Sequences to Matrix
-# -------------------
+### operators.jl
+
+### Sequences to Matrix
+### -------------------
+
+@in_module BioSequences
+
 
 """
     seqmatrix(vseq::AbstractVector{BioSequence{A}}, major::Symbol) where {A<:Alphabet}
 
-Construct a matrix of nucleotides or amino acids from a vector of `BioSequence`s.
+Construct a matrix of nucleotides or amino acids from a vector of
+`BioSequence`s.
 
-If parameter `major` is set to `:site`, the matrix is created such that one
-nucleotide from each sequence is placed in each column i.e. the matrix is laid
-out in site-major order.
-This means that iteration over one position of many sequences is efficient,
-as julia arrays are laid out in column major order.
+If parameter `major` is set to `:site`, the matrix is created such
+that one nucleotide from each sequence is placed in each column
+i.e. the matrix is laid out in site-major order.
 
-If the parameter `major` is set to `:seq`, the matrix is created such that each
-sequence is placed in one column i.e. the matrix is laid out in sequence-major
-order.
+This means that iteration over one position of many sequences is
+efficient, as julia arrays are laid out in column major order.
+
+If the parameter `major` is set to `:seq`, the matrix is created such
+that each sequence is placed in one column i.e. the matrix is laid out
+in sequence-major order.
+
 This means that iteration across each sequence in turn is efficient,
 as julia arrays are laid out in column major order.
 
 # Examples
+
 ```julia
 julia> seqs = [dna"AAA", dna"TTT", dna"CCC", dna"GGG"]
 4-element Array{BioSequences.BioSequence{BioSequences.DNAAlphabet{4}},1}:
@@ -46,12 +56,14 @@ julia> seqmatrix(seqs, :site)
   DNA_A  DNA_T  DNA_C  DNA_G
 ```
 """
-function seqmatrix(vseq::AbstractVector{LongSequence{A}}, major::Symbol) where {A<:Alphabet}
+function seqmatrix(vseq::AbstractVector{LongSequence{A}},
+                   major::Symbol) where {A <: Alphabet}
     nseqs = length(vseq)
     @assert nseqs > 0 throw(ArgumentError("Vector of BioSequence{$A} is empty."))
     nsites = length(vseq[1])
     @inbounds for i in 2:nseqs
-        length(vseq[i]) == nsites || throw(ArgumentError("Sequences in vseq must be of same length"))
+        length(vseq[i]) == nsites ||
+            throw(ArgumentError("Sequences in vseq must be of same length"))
     end
     if major == :site
         mat = Matrix{eltype(A)}(undef, (nseqs, nsites))
@@ -70,24 +82,28 @@ function seqmatrix(vseq::AbstractVector{LongSequence{A}}, major::Symbol) where {
     end
 end
 
+
 """
     seqmatrix(::Type{T}, vseq::AbstractVector{BioSequence{A}}, major::Symbol) where {T,A<:Alphabet}
 
 Construct a matrix of `T` from a vector of `BioSequence`s.
 
-If parameter `major` is set to `:site`, the matrix is created such that one
-nucleotide from each sequence is placed in each column i.e. the matrix is laid
-out in site-major order.
-This means that iteration over one position of many sequences is efficient,
-as julia arrays are laid out in column major order.
+If parameter `major` is set to `:site`, the matrix is created such
+that one nucleotide from each sequence is placed in each column
+i.e. the matrix is laid out in site-major order.
 
-If the parameter `major` is set to `:seq`, the matrix is created such that each
-sequence is placed in one column i.e. the matrix is laid out in sequence-major
-order.
+This means that iteration over one position of many sequences is
+efficient, as Julia arrays are laid out in column major order.
+
+If the parameter `major` is set to `:seq`, the matrix is created such
+that each sequence is placed in one column i.e. the matrix is laid out
+in sequence-major order.
+
 This means that iteration across each sequence in turn is efficient,
 as julia arrays are laid out in column major order.
 
 # Examples
+
 ```julia
 julia> seqs = [dna"AAA", dna"TTT", dna"CCC", dna"GGG"]
 4-element Array{BioSequences.BioSequence{BioSequences.DNAAlphabet{4}},1}:
@@ -114,12 +130,15 @@ julia> seqmatrix(seqs, :seq, UInt8)
  0x01  0x08  0x02  0x04
 ```
 """
-function seqmatrix(::Type{T}, vseq::AbstractVector{LongSequence{A}}, major::Symbol) where {T,A<:Alphabet}
+function seqmatrix(::Type{T},
+                   vseq::AbstractVector{LongSequence{A}},
+                   major::Symbol) where {T, A <: Alphabet}
     nseqs = length(vseq)
     @assert nseqs > 0 throw(ArgumentError("Vector of BioSequence{$A} is empty."))
     nsites = length(vseq[1])
     @inbounds for i in 2:nseqs
-        length(vseq[i]) == nsites || throw(ArgumentError("Sequences in vseq must be of same length."))
+        length(vseq[i]) == nsites
+        || throw(ArgumentError("Sequences in vseq must be of same length."))
     end
     if major == :site
         mat = Matrix{T}(undef, (nseqs, nsites))
@@ -138,24 +157,27 @@ function seqmatrix(::Type{T}, vseq::AbstractVector{LongSequence{A}}, major::Symb
     end
 end
 
-# Consensus
-# ---------
+
+### Consensus
+### ---------
 
 """
     majorityvote(seqs::AbstractVector{LongSequence{A}}) where {A<:NucleicAcidAlphabet}
 
 Construct a sequence that is a consensus of a vector of sequences.
 
-The consensus is established by a simple majority vote rule, where ambiguous
-nucleotides cast an equal vote for each of their possible states.
-For each site a winner(s) out of A, T(U), C, or G is determined, in the cases
-of ties the ambiguity symbol that unifies all the winners is returned.
-E.g if A and T tie, then W is inserted in the consensus. If all A, T, C, and G
-tie at a site, then N is inserted in the consensus. Note this means that if a
-nucletide e.g. 'C' and a gap '-' draw, the nucleotide will always win over the
-gap, even though they tied.
+The consensus is established by a simple majority vote rule, where
+ambiguous nucleotides cast an equal vote for each of their possible
+states.  For each site a winner(s) out of A, T(U), C, or G is
+determined, in the cases of ties the ambiguity symbol that unifies all
+the winners is returned.  E.g if A and T tie, then W is inserted in
+the consensus. If all A, T, C, and G tie at a site, then N is inserted
+in the consensus. Note this means that if a nucletide e.g. 'C' and a
+gap '-' draw, the nucleotide will always win over the gap, even though
+they tied.
 
 # Examples
+
 ```julia
 julia> seqs = [dna"CTCGATCGATCC", dna"CTCGAAAAATCA", dna"ATCGAAAAATCG", dna"ATCGGGGGATCG"]
 
@@ -170,7 +192,9 @@ julia> majorityvote(seqs)
 MTCGAAARATCG
 ```
 """
-function majorityvote(seqs::AbstractVector{LongSequence{A}}) where {A<:NucleicAcidAlphabet}
+function majorityvote(seqs::AbstractVector{LongSequence{A}}) where
+    {A <: NucleicAcidAlphabet}
+    
     mat = seqmatrix(UInt8, seqs, :site)
     nsites = size(mat, 2)
     nseqs = size(mat, 1)
@@ -196,33 +220,44 @@ function majorityvote(seqs::AbstractVector{LongSequence{A}}) where {A<:NucleicAc
     return result
 end
 
-### Comparisons
-function Base.:(==)(seq1::SeqOrView{A}, seq2::SeqOrView{A}) where {A <: Alphabet}
+
+### Comparisons.
+
+function Base.:(==)(seq1::SeqOrView{A},
+                    seq2::SeqOrView{A}) where {A <: Alphabet}
+    
     length(seq1) == length(seq2) || false
 
-    # If they share the same data
+    ## If they share the same data.
+    
     if seq1.data === seq2.data && firstbitindex(seq1) == firstbitindex(seq2)
         return true
     end
 
-    # Fallback
+    ## Fallback.
+    
     for (i, j) in zip(seq1, seq2)
         i == j || return false
     end
     return true
 end
 
-function Base.:(==)(seq1::LongSequence{A}, seq2::LongSequence{A}) where {A <: Alphabet}
+
+function Base.:(==)(seq1::LongSequence{A},
+                    seq2::LongSequence{A}) where {A <: Alphabet}
+
     length(seq1) == length(seq2) || return false
     isempty(seq1) && return true
 
-    # Check all filled UInts
+    ## Check all filled UInts.
+    
     nextind = nextposition(lastbitindex(seq1))
     @inbounds for i in 1:index(nextind) - 1
         seq1.data[i] == seq2.data[i] || return false
     end
 
-    # Check last coding UInt, if any
+    ## Check last coding UInt, if any.
+    
     @inbounds if !iszero(offset(nextind))
         mask = bitmask(offset(nextind))
         i = index(nextind)
@@ -231,3 +266,6 @@ function Base.:(==)(seq1::LongSequence{A}, seq2::LongSequence{A}) where {A <: Al
 
     return true
 end
+
+
+### operators.jl ends here.

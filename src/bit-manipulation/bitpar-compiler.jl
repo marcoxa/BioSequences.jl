@@ -1,3 +1,10 @@
+### -*- Mode: Julia -*-
+
+### bitpar-compiler.jl
+
+@in_module BioSequences
+
+
 ###
 ### Bitparallel 
 ###
@@ -16,6 +23,7 @@ function compile_bitpar(funcname::Symbol;
     for arg in arguments
         push!(functioncode.args[1].args, arg)
     end
+    
     functioncode.args[2] = quote
         $(init_code)
         ind = bitindex(seq, 1)
@@ -23,7 +31,7 @@ function compile_bitpar(funcname::Symbol;
         data = seq.data
         @inbounds begin
             if !iszero(offset(ind)) & (ind < stop)
-                # align the bit index to the beginning of a block boundary
+                ## Align the bit index to the beginning of a block boundary
                 o = offset(ind)
                 mask = bitmask(stop - ind)
                 n_bits_masked = ifelse(index(stop) == index(ind), count_zeros(mask), o)
@@ -51,6 +59,7 @@ function compile_bitpar(funcname::Symbol;
     return functioncode
 end
 
+
 function get_arg_name(arg)
     if typeof(arg) === Expr
         if arg.head === :(::)
@@ -60,8 +69,9 @@ function get_arg_name(arg)
     return arg
 end
 
+
 function check_arguments(args::Tuple)
-    # Check all arguments are symbols or expressions
+    ## Check all arguments are symbols or expressions
     for arg in args
         if !(isa(arg, Symbol) || isa(arg, Expr))
             error("Argument ", arg, " is not an expression or symbol")
@@ -85,6 +95,7 @@ function check_arguments(args::Tuple)
     end
 end
 
+
 function add_arguments!(exp, args)
     check_arguments(args)
     @assert exp.head === :function
@@ -101,6 +112,7 @@ function add_arguments!(exp, args)
         error("Expression in function is not a :call or :where!")
     end
 end
+
 
 function compile_2seq_bitpar(funcname::Symbol;
                              arguments::Tuple  =  (),
@@ -122,7 +134,9 @@ function compile_2seq_bitpar(funcname::Symbol;
     add_arguments!(functioncode, arguments)
     
     argument_names = map(get_arg_name, arguments)
-    argument_names = tuple(argument_names[2], argument_names[1], argument_names[3:end]...)
+    argument_names = tuple(argument_names[2],
+                           argument_names[1],
+                           argument_names[3:end]...)
     
     functioncode.args[2] = quote
         if length(seqa) > length(seqb)
@@ -139,43 +153,55 @@ function compile_2seq_bitpar(funcname::Symbol;
         
         $(init_code)
         
-        # The first thing we need to sort out is to correctly align the head of
-        # sequence / subsequence `a`s data is aligned such that the offset of
-        # `nexta` is essentially reduced to 0.
-        # With sequence / subsequence `a` aligned, from there, we only need to
-        # worry about the alignment of sequence / subsequence `b` with respect
-        # to `a`.
+        ## The first thing we need to sort out is to correctly align the head of
+        ## sequence / subsequence `a`s data is aligned such that the offset of
+        ## `nexta` is essentially reduced to 0.
+        ## With sequence / subsequence `a` aligned, from there, we only need to
+        ## worry about the alignment of sequence / subsequence `b` with respect
+        ## to `a`.
+        
         if nexta < stopa && offset(nexta) != 0
-            # Here we shift the first data chunks to the right so as the first
-            # nucleotide of the seq/subseq is the first nibble / pair of bits.
+            ## Here we shift the first data chunks to the right so as the first
+            ## nucleotide of the seq/subseq is the first nibble / pair of bits.
+            
             x = adata[index(nexta)] >> offset(nexta)
             y = bdata[index(nextb)] >> offset(nextb)
-            # Here it was assumed that there is something to go and get from
-            # the next chunk of `b`, yet that may not be true.
-            # We know that if this is not true of `b`, then it is certainly not
-            # true of `a`.
-            # We check if the end of the sequence is not contained in the same
-            # integer like so: `64 - offset(nextb) < stopb - nextb`.
-            #
-            # This edge case was found and accounted for by Ben J. Ward @BenJWard.
-            # Ask this maintainer for more information.
-            if offset(nextb) > offset(nexta) && 64 - offset(nextb) < stopb - nextb
+            
+            ## Here it was assumed that there is something to go and
+            ## get from the next chunk of `b`, yet that may not be
+            ## true.  We know that if this is not true of `b`, then it
+            ## is certainly not true of `a`.
+            ##
+            ## We check if the end of the sequence is not contained in
+            ## the same integer like so: `64 - offset(nextb) < stopb -
+            ## nextb`.
+            ##
+            ## This edge case was found and accounted for by Ben
+            ## J. Ward @BenJWard.  Ask this maintainer for more information.
+            
+            if (offset(nextb) > offset(nexta) &&
+                64 - offset(nextb) < stopb - nextb)
                 y |= bdata[index(nextb) + 1] << (64 - offset(nextb))
             end
-            # Here we need to check something, we need to check if the
-            # integer of `a` we are currently aligning contains the end of
-            # seq/subseq `a`. Because if so it's something we need to take into
-            # account of when we mask x and y.
-            #
-            # In other words if `64 - offset(nexta) > stopa - nexta, we know
-            # seq or subseq a's data ends before the end of this data chunk,
-            # and so the mask used needs to be defined to account for this:
-            # `mask(stopa - nexta)`, otherwise the mask simply needs to be
-            # `mask(64 - offset(nexta))`.
-            #
-            # This edge case was found and accounted for by Ben Ward @Ward9250.
-            # Ask this maintainer for more information.
-            offs = ifelse(64 - offset(nexta) > stopa - nexta, stopa - nexta, 64 - offset(nexta))
+            
+            ## Here we need to check something, we need to check if
+            ## the integer of `a` we are currently aligning contains
+            ## the end of seq/subseq `a`. Because if so it's something
+            ## we need to take into account of when we mask x and y.
+            ##
+            ## In other words if `64 - offset(nexta) > stopa - nexta,
+            ## we know seq or subseq a's data ends before the end of
+            ## this data chunk, and so the mask used needs to be
+            ## defined to account for this: `mask(stopa - nexta)`,
+            ## otherwise the mask simply needs to be `mask(64 -
+            ## offset(nexta))`.
+            ##          
+            ## This edge case was found and accounted for by Ben Ward
+            ## @Ward9250.  Ask this maintainer for more information.
+            
+            offs = ifelse(64 - offset(nexta) > stopa - nexta,
+                          stopa - nexta,
+                          64 - offset(nexta))
             m = bitmask(offs)
             
             x &= m
@@ -183,14 +209,15 @@ function compile_2seq_bitpar(funcname::Symbol;
             
             $(head_code)
             
-            # Here we move our current position markers by k, meaning they move
-            # to either, A). The next integer, or B). The end of the sequence if
-            # it is in the current integer.
+            ## Here we move our current position markers by k, meaning
+            ## they move to either, A). The next integer, or B). The
+            ## end of the sequence if it is in the current integer.
+            
             nexta += offs
             nextb += offs
         end
         
-        if offset(nextb) == 0  # data are aligned with each other
+        if offset(nextb) == 0  # Data are aligned with each other
             while stopa - nexta ≥ 64 # Iterate through body of data
                 x = adata[index(nexta)]
                 y = bdata[index(nextb)]
@@ -215,9 +242,12 @@ function compile_2seq_bitpar(funcname::Symbol;
         elseif nexta < stopa # Data are unaligned
             y = bdata[index(nextb)]
             nextb += 64
-            # Note that here, updating `nextb` by 64, increases the chunk index,
-            # but the `offset(nextb)` will remain the same.
-            while stopa - nexta ≥ 64 # processing body of data
+            
+            ## Note that here, updating `nextb` by 64, increases the
+            ## chunk index, but the `offset(nextb)` will remain the
+            ## same.
+            
+            while stopa - nexta ≥ 64 # Processing body of data
                 x = adata[index(nexta)]
                 z = bdata[index(nextb)]
                 y = y >> offset(nextb) | z << (64 - offset(nextb))
@@ -229,7 +259,7 @@ function compile_2seq_bitpar(funcname::Symbol;
                 nextb += 64
             end
             
-            if nexta < stopa # processing tail of data
+            if nexta < stopa # Processing tail of data
                 x = adata[index(nexta)]
                 y = y >> offset(nextb)
                 if 64 - offset(nextb) < stopa - nexta
@@ -247,3 +277,5 @@ function compile_2seq_bitpar(funcname::Symbol;
     end
     return functioncode
 end
+
+### bitpar-compiler.jl ends here.

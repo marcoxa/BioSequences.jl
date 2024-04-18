@@ -1,10 +1,14 @@
-# Transformations
-# ===============
-#
-# Methods that manipulate and change a biological sequence.
-#
-# This file is a part of BioJulia.
-# License is MIT: https://github.com/BioJulia/BioSequences.jl/blob/master/LICENSE.md
+### -*- Mode: Julia -*-
+
+### Transformations
+### ===============
+###
+### Methods that manipulate and change a biological sequence.
+###
+### This file is a part of BioJulia.
+### License is MIT: https://github.com/BioJulia/BioSequences.jl/blob/master/LICENSE.md
+
+@in_module Biosequences
 
 """
     empty!(seq::BioSequence)
@@ -12,6 +16,7 @@
 Completely empty a biological sequence `seq` of nucleotides.
 """
 Base.empty!(seq::BioSequence) = resize!(seq, 0)
+
 
 """
     push!(seq::BioSequence, x)
@@ -25,10 +30,13 @@ function Base.push!(seq::BioSequence, x)
     return seq
 end
 
+
 """
     pop!(seq::BioSequence)
 
-Remove the symbol from the end of a biological sequence `seq` and return it.
+Remove the symbol from the end of a biological sequence `seq` and
+return it.
+
 Returns a variable of `eltype(seq)`.
 """
 function Base.pop!(seq::BioSequence)
@@ -40,11 +48,12 @@ function Base.pop!(seq::BioSequence)
     return x
 end
 
+
 """
     insert!(seq::BioSequence, i, x)
 
-Insert a biological symbol `x` into a biological sequence `seq`, at the given
-index `i`.
+Insert a biological symbol `x` into a biological sequence `seq`, at
+the given index `i`.
 """
 function Base.insert!(seq::BioSequence, i::Integer, x)
     checkbounds(seq, i)
@@ -54,8 +63,9 @@ function Base.insert!(seq::BioSequence, i::Integer, x)
     return seq
 end
 
+
 """
-    deleteat!(seq::BioSequence, range::UnitRange{<:Integer})
+    deleteat!(seq::BioSequence, range::UnitRange{<: Integer})
 
 Deletes a defined `range` from a biological sequence `seq`.
 
@@ -68,11 +78,12 @@ function Base.deleteat!(seq::BioSequence, range::UnitRange{<:Integer})
     return seq
 end
 
+
 """
     deleteat!(seq::BioSequence, i::Integer)
 
-Delete a biological symbol at a single position `i` in a biological sequence
-`seq`.
+Delete a biological symbol at a single position `i` in a biological
+sequence `seq`.
 
 Modifies the input sequence.
 """
@@ -83,11 +94,12 @@ function Base.deleteat!(seq::BioSequence, i::Integer)
     return seq
 end
 
+
 """
     append!(seq, other)
 
-Add a biological sequence `other` onto the end of biological sequence `seq`.
-Modifies and returns `seq`.
+Add a biological sequence `other` onto the end of biological sequence
+`seq`.  Modifies and returns `seq`.
 """
 function Base.append!(seq::BioSequence, other::BioSequence)
     resize!(seq, length(seq) + length(other))
@@ -95,11 +107,12 @@ function Base.append!(seq::BioSequence, other::BioSequence)
     return seq
 end
 
+
 """
     popfirst!(seq)
 
-Remove the symbol from the beginning of a biological sequence `seq` and return
-it. Returns a variable of `eltype(seq)`.
+Remove the symbol from the beginning of a biological sequence `seq`
+and return it. Returns a variable of `eltype(seq)`.
 """
 function Base.popfirst!(seq::BioSequence)
     if isempty(seq)
@@ -110,10 +123,12 @@ function Base.popfirst!(seq::BioSequence)
     return x
 end
 
+
 """
     pushfirst!(seq, x)
 
-Insert a biological symbol `x` at the beginning of a biological sequence `seq`.
+Insert a biological symbol `x` at the beginning of a biological
+sequence `seq`.
 """
 function Base.pushfirst!(seq::BioSequence, x)
     resize!(seq, length(seq) + 1)
@@ -121,6 +136,9 @@ function Base.pushfirst!(seq::BioSequence, x)
     @inbounds seq[firstindex(seq)] = x
     return seq
 end
+
+
+### Interface extensions.
 
 Base.filter(f, seq::BioSequence) = filter!(f, copy(seq))
 
@@ -143,7 +161,9 @@ function Base.filter!(f, seq::BioSequence)
     return resize!(seq, ind)
 end
 
+
 Base.map(f, seq::BioSequence) = map!(f, copy(seq))
+
 
 function Base.map!(f, seq::BioSequence)
     @inbounds for i in eachindex(seq)
@@ -152,12 +172,14 @@ function Base.map!(f, seq::BioSequence)
     seq
 end
 
+
 """
     reverse(seq::BioSequence)
 
 Create reversed copy of a biological sequence.
 """
 Base.reverse(seq::BioSequence) = reverse!(copy(seq))
+
 
 function Base.reverse!(s::BioSequence)
 	i, j = 1, lastindex(s)
@@ -168,6 +190,7 @@ function Base.reverse!(s::BioSequence)
 	return s
 end
 
+
 """
     complement(seq)
 
@@ -177,7 +200,9 @@ function BioSymbols.complement(seq::NucleotideSeq)
     return complement!(copy(seq))
 end
 
+
 complement!(seq::NucleotideSeq) = map!(complement, seq)
+
 
 """
     reverse_complement!(seq)
@@ -188,6 +213,7 @@ function reverse_complement!(seq::NucleotideSeq)
     return complement!(reverse!(seq))
 end
 
+
 """
     reverse_complement(seq)
 
@@ -197,14 +223,15 @@ function reverse_complement(seq::NucleotideSeq)
     return complement!(reverse(seq))
 end
 
+
 """
     canonical!(seq::NucleotideSeq)
 
-Transforms the `seq` into its canonical form, if it is not already canonical.
-Modifies the input sequence inplace.
+Transforms the `seq` into its canonical form, if it is not already
+canonical.  Modifies the input sequence inplace.
 
-For any sequence, there is a reverse complement, which is the same sequence, but
-on the complimentary strand of DNA:
+For any sequence, there is a reverse complement, which is the same
+sequence, but on the complimentary strand of DNA:
 
 ```
 ------->
@@ -214,11 +241,11 @@ CGATCGAT
 ```
 
 !!! note
-    Using the [`reverse_complement`](@ref) of a DNA sequence will give give this
-    reverse complement.
+    Using the [`reverse_complement`](@ref) of a DNA sequence will give
+    give this reverse complement.
 
-Of the two sequences, the *canonical* of the two sequences is the lesser of the
-two i.e. `canonical_seq < other_seq`.
+Of the two sequences, the *canonical* of the two sequences is the
+lesser of the two i.e. `canonical_seq < other_seq`.
 
 Using this function on a `seq` will ensure it is the canonical version.
 """
@@ -229,6 +256,7 @@ function canonical!(seq::NucleotideSeq)
     return seq
 end
 
+
 """
     canonical(seq::NucleotideSeq)
 
@@ -237,11 +265,14 @@ Create the canonical sequence of `seq`.
 """
 canonical(seq::NucleotideSeq) = iscanonical(seq) ? copy(seq) : reverse_complement(seq)
 
+
 "Create a copy of a sequence with gap characters removed."
 ungap(seq::BioSequence)  =  filter(!isgap, seq)
 
+
 "Remove gap characters from an input sequence."
 ungap!(seq::BioSequence) = filter!(!isgap, seq)
+
 
 ###
 ### Shuffle
@@ -256,6 +287,10 @@ function Random.shuffle!(seq::BioSequence)
     return seq
 end
 
+
 function Random.shuffle(seq::BioSequence)
     return shuffle!(copy(seq))
 end
+
+
+### transformations.jl ends here.

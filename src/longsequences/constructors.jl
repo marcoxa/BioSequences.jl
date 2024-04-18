@@ -1,3 +1,7 @@
+### -*- Mode: Julia -*-
+
+### constructors.jl
+
 ###
 ### Constructors
 ###
@@ -7,21 +11,28 @@
 ### This file is a part of BioJulia.
 ### License is MIT: https://github.com/BioJulia/BioSequences.jl/blob/master/LICENSE.md
 
+
 @inline seq_data_len(s::LongSequence{A}) where A = seq_data_len(A, length(s))
+
 
 @inline function seq_data_len(::Type{A}, len::Integer) where A <: Alphabet
     iszero(bits_per_symbol(A())) && return 0
     return cld(len, div(64, bits_per_symbol(A())))
 end
 
-function LongSequence{A}(::UndefInitializer, len::Integer) where {A<:Alphabet}
+
+function LongSequence{A}(::UndefInitializer,
+                         len::Integer) where {A <: Alphabet}
     if len < 0
         throw(ArgumentError("len must be non-negative"))
     end
-    return LongSequence{A}(Vector{UInt64}(undef, seq_data_len(A, len)), UInt(len))
+    return LongSequence{A}(Vector{UInt64}(undef, seq_data_len(A, len)),
+                           UInt(len))
 end
 
-# Generic constructor
+
+### Generic constructor.
+
 function LongSequence{A}(it) where {A <: Alphabet}
     len = length(it)
     data = Vector{UInt64}(undef, seq_data_len(A, len))
@@ -41,48 +52,67 @@ function LongSequence{A}(it) where {A <: Alphabet}
     LongSequence{A}(data, len % UInt)
 end
 
+
 Base.empty(::Type{T}) where {T <: LongSequence} = T(UInt[], UInt(0))
+
 (::Type{T})() where {T <: LongSequence} = empty(T)
 
-# Constructors from other sequences
-# TODO: Remove this method, since the user can just slice
+
+### Constructors from other sequences.
+### TODO: Remove this method, since the user can just slice.
+
 LongSequence(s::LongSequence, xs::AbstractUnitRange{<:Integer}) = s[xs]
+
 
 function LongSequence(seq::BioSequence{A}) where {A <: Alphabet}
     return LongSequence{A}(seq)
 end
 
+
 LongSequence{A}(seq::LongSequence{A}) where {A <: Alphabet} = copy(seq)
 
+
 function (::Type{T})(seq::LongSequence{<:NucleicAcidAlphabet{N}}) where
-         {N, T<:LongSequence{<:NucleicAcidAlphabet{N}}}
+    {N, T <: LongSequence{<: NucleicAcidAlphabet{N}}}
     return T(copy(seq.data), seq.len)
 end
 
-# Constructors from strings
-function LongSequence{A}(s::Union{String, SubString{String}}) where {A<:Alphabet}
+
+### Constructors from strings.
+
+function LongSequence{A}(s::Union{String, SubString{String}}) where
+    {A <: Alphabet}
     return LongSequence{A}(s, codetype(A()))
 end
 
-# Generic method for String/Substring.
-function LongSequence{A}(s::Union{String, SubString{String}}, ::AlphabetCode) where {A<:Alphabet}
+
+### Generic method for String/Substring.
+
+function LongSequence{A}(s::Union{String, SubString{String}},
+                         ::AlphabetCode) where {A <: Alphabet}
     len = length(s)
     seq = LongSequence{A}(undef, len)
     return copyto!(seq, 1, s, 1, len)
 end
 
-function LongSequence{A}(s::Union{String, SubString{String}}, ::AsciiAlphabet) where {A<:Alphabet}
+
+function LongSequence{A}(s::Union{String, SubString{String}},
+                         ::AsciiAlphabet) where {A <: Alphabet}
     seq = LongSequence{A}(undef, ncodeunits(s))
     return encode_chunks!(seq, 1, codeunits(s), 1, ncodeunits(s))
 end
 
-function LongSequence{A}(
-    src::Union{AbstractString,AbstractVector{UInt8}},
-    part::AbstractUnitRange{<:Integer}=1:length(src)
-) where {A<:Alphabet}
+
+function LongSequence{A}(src::Union{AbstractString,AbstractVector{UInt8}},
+                         part::AbstractUnitRange{<: Integer} = 1:length(src)
+                         ) where {A<:Alphabet}
     len = length(part)
     seq = LongSequence{A}(undef, len)
     return copyto!(seq, 1, src, first(part), len)
 end
 
-Base.parse(::Type{LongSequence{A}}, seq::AbstractString) where A = LongSequence{A}(seq)
+
+Base.parse(::Type{LongSequence{A}},
+           seq::AbstractString) where A = LongSequence{A}(seq)
+
+### constructors.jl ends here.
