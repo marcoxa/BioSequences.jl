@@ -97,8 +97,8 @@ end
 end
 
 
-@inline function ambiguous_bitcount(a::UInt64, b::UInt64, ::T)
-    where {T <: NucleicAcidAlphabet{4}}
+@inline function ambiguous_bitcount(a::UInt64, b::UInt64, ::T) where
+    {T <: NucleicAcidAlphabet{4}}
     return count_nonzero_nibbles((enumerate_nibbles(a) | enumerate_nibbles(b)) &
         0xEEEEEEEEEEEEEEEE)
 end
