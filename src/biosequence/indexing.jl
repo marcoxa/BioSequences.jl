@@ -97,10 +97,10 @@ Base.@propagate_inbounds function Base.setindex!(x::BioSequence,
 end
 
 
-Base.@propagate_inbounds
-function Base.setindex!(seq::BioSequence,
-                        x,
-                        locs::AbstractVector{<: Integer})
+Base.@propagate_inbounds function
+    Base.setindex!(seq::BioSequence,
+                   x,
+                   locs::AbstractVector{<: Integer})
     @boundscheck checkbounds(seq, locs)
     @boundscheck if length(x) != length(locs)
         throw(DimensionMismatch("Attempt to assign $(length(x)) "
@@ -114,8 +114,10 @@ function Base.setindex!(seq::BioSequence,
 end
 
 
-Base.@propagate_inbounds
-function Base.setindex!(seq::BioSequence, x, locs::AbstractVector{Bool})
+Base.@propagate_inbounds function
+    Base.setindex!(seq::BioSequence,
+                   x,
+                   locs::AbstractVector{Bool})
     @boundscheck checkbounds(seq, locs)
     n = count(locs)
     @boundscheck if length(x) != n
