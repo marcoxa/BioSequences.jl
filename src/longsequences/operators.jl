@@ -137,8 +137,8 @@ function seqmatrix(::Type{T},
     @assert nseqs > 0 throw(ArgumentError("Vector of BioSequence{$A} is empty."))
     nsites = length(vseq[1])
     @inbounds for i in 2:nseqs
-        length(vseq[i]) == nsites
-        || throw(ArgumentError("Sequences in vseq must be of same length."))
+        length(vseq[i]) == nsites ||
+            throw(ArgumentError("Sequences in vseq must be of same length."))
     end
     if major == :site
         mat = Matrix{T}(undef, (nseqs, nsites))
