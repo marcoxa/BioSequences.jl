@@ -10,8 +10,6 @@
 
 module BioSequences
 
-using JLCL
-
 export
     ###
     ### Symbols
@@ -210,7 +208,14 @@ import Twiddle: enumerate_nibbles,
 using Random
 
 
+### Load some useful macros (just the `@in_module` one FTTB).
+
+include("utilities/utilities.jl")
+
+### Load the definitions regarding the alphabet(s).
+
 include("alphabet.jl")
+
 
 ### Load the bit-twiddling internals that optimised BioSequences
 ### methods depend on.
@@ -241,7 +246,7 @@ include("search/re.jl")
 include("search/pwm.jl")
 
 
-struct Search{Q,I}
+struct Search{Q, I}
     query::Q
     itr::I
     overlap::Bool
