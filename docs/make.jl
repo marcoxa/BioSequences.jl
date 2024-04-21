@@ -1,6 +1,20 @@
+### -*- Mode: Julia -*-
+
+### make.jl
+###
+### Documentation building facilities for `BioSequences.jl`: a julia
+### package for the representation and manipulation of biological
+### sequences.
+###
+### This file is a part of BioJulia.
+### License is MIT: https://github.com/BioJulia/BioSequences.jl/blob/master/LICENSE
+
 using Documenter, BioSequences
 
-DocMeta.setdocmeta!(BioSequences, :DocTestSetup, :(using BioSequences); recursive=true)
+DocMeta.setdocmeta!(BioSequences,
+                    :DocTestSetup,
+                    :(using BioSequences);
+                    recursive = true)
 
 makedocs(
     format = Documenter.HTML(),
@@ -23,9 +37,13 @@ makedocs(
     checkdocs = :all,
 )
 
+
 deploydocs(
     repo = "github.com/BioJulia/BioSequences.jl.git",
     push_preview = true,
     deps = nothing,
     make = nothing
 )
+
+
+### make.jl ends here.
